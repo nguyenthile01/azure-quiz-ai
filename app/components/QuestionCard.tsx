@@ -3,107 +3,93 @@
 import { useMemo } from "react";
 import type { Question } from "../interfaces/Question";
 
-interface Props {
+type QuestionCardProps = {
   q: Question;
   index: number;
-
-  // global state (owned by Home)
-  selectedKey: string | null;
-  onSelect: (index: number, optionText: string) => void;
-
-  // global lock/reveal (owned by Home)
-  submitted: boolean;
-  timedOut: boolean;
-}
+  selectedKey?: string | null;
+  onSelect?: (index: number, optionText: string) => void;
+  submitted?: boolean;
+  timedOut?: boolean;
+};
 
 function getOptionKey(optionText: string): string {
-  const m = optionText.trim().match(/^([A-D])(?:\s*[\.\)\-:])?\s*/i);
-  return (m?.[1]?.toUpperCase() ?? optionText.trim().charAt(0).toUpperCase());
+  return optionText.trim().toLowerCase();
 }
 
-type OptionMap = { A: string; B: string; C: string; D: string };
-
-function isOptionMap(v: unknown): v is OptionMap {
-  return (
-    typeof v === "object" &&
-    v !== null &&
-    "A" in v &&
-    "B" in v &&
-    "C" in v &&
-    "D" in v
-  );
+function isOptionMap(v: unknown): v is Record<string, string> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
 function toOptionArray(options: unknown): string[] {
-  if (Array.isArray(options)) return options.map(String);
-
-  if (isOptionMap(options)) {
-    // Normalize to the existing UI format: ["A. ...", "B. ...", ...]
-    return [
-      `A. ${String(options.A)}`,
-      `B. ${String(options.B)}`,
-      `C. ${String(options.C)}`,
-      `D. ${String(options.D)}`,
-    ];
-  }
-
+  if (Array.isArray(options)) return options;
+  if (isOptionMap(options)) return Object.values(options);
   return [];
 }
 
-export default function QuestionCard({
-  q,
-  index,
-  selectedKey,
-  onSelect,
-  submitted,
-  timedOut,
-}: Props) {
-  // Normalize options so options.map(...) always works
-  const options = toOptionArray((q as Question as any).options);
-
-  const locked = submitted || timedOut;
-
-  const correctKey = useMemo(() => {
-    return getOptionKey(String(q.correctAnswer ?? ""));
-  }, [q.correctAnswer]);
+export default function QuestionCard({ q, index, selectedKey, onSelect, submitted, timedOut }: QuestionCardProps) {
+  const options = useMemo(() => toOptionArray((q as any).options), [q]);
+  const selected = selectedKey ?? null;
 
   return (
-    <div className="bg-white p-6 rounded-xl shadow-md mt-6 border border-gray-200 text-[#0a0a0a]">
-      <h3 className="text-lg  mb-2">
-        {index + 1}. {q.question}
-      </h3>
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm shadow-black/5 dark:border-gray-800 dark:bg-gray-900 dark:shadow-black/30">
+      <div className="flex items-start justify-between gap-4">
+        <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">
+          {index + 1}. {q.question}
+        </h3>
+        {(q as any).difficulty ? (
+          <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
+            {(q as any).difficulty}
+          </span>
+        ) : null}
+      </div>
 
-      <ul className="space-y-2 mb-4 mt-4">
+      <div className="mt-4 space-y-2">
         {options.map((opt, i) => {
           const key = getOptionKey(opt);
-          const isSelected = selectedKey === key;
+          const isSelected = selected != null && key === selected;
+          const disabled = Boolean(submitted || timedOut);
 
           return (
-            <li key={i}>
-              <button
-                type="button"
-                onClick={() => onSelect(index, opt)}
-                disabled={submitted || timedOut}
-                className={[
-                  "w-full text-left px-4 py-2 rounded-lg border transition",
-                  isSelected ? "border-blue-500 bg-blue-50" : "border-gray-200 hover:bg-gray-50",
-                ].join(" ")}
-              >
-                {opt}
-              </button>
-            </li>
+            <button
+              key={`${index}-${i}-${key}`}
+              type="button"
+              onClick={() => onSelect?.(index, opt)}
+              disabled={disabled}
+              className={[
+                "w-full text-left rounded-lg border px-4 py-2 transition shadow-sm shadow-black/5",
+                "focus-visible:outline-none focus-visible:ring-2",
+                disabled ? "cursor-not-allowed opacity-70" : "",
+                isSelected
+                  ? "border-gray-900 bg-gray-100 text-gray-900 focus-visible:ring-gray-300 dark:border-gray-100 dark:bg-gray-800 dark:text-gray-50 dark:focus-visible:ring-gray-600"
+                  : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50 focus-visible:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 dark:focus-visible:ring-gray-600",
+              ].join(" ")}
+            >
+              {opt}
+            </button>
           );
         })}
-      </ul>
+      </div>
 
-      {submitted && (
-        <div className="mt-4 text-sm text-gray-700">
+      {submitted ? (
+        <div className="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-200">
           <div>
-            <span className="font-semibold">Correct:</span> {q.correctAnswer}
+            <span className="font-semibold text-gray-900 dark:text-gray-100">Correct:</span>{" "}
+            <span className="text-gray-800 dark:text-gray-200">{q.correct_answer}</span>
           </div>
-          <div className="mt-2">{q.explanation}</div>
+          {q.explanation ? (
+            <div className="mt-2 text-gray-700 dark:text-gray-300">
+              <span className="font-semibold text-gray-900 dark:text-gray-100">Explanation:</span>{" "}
+              <span>{q.explanation}</span>
+            </div>
+          ) : null}
         </div>
-      )}
+      ) : null}
+
+      {timedOut && !submitted ? (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+          Time is up. Submit to review the correct answers.
+        </div>
+      ) : null}
     </div>
   );
 }

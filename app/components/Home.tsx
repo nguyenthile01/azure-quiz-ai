@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import QuestionCard from "./QuestionCard";
-import { Question } from "../interfaces/Question";
+import AuthDialog from "./AuthDialog";
 import { TEST_TYPES, type DifficultyMix, type TestType } from "../lib/prompt";
+import QuestionCard from "./QuestionCard";
+import HeaderAuth from "./HeaderAuth";
+import { Question } from "../interfaces/Question";
+import supabaseBrowserClient from "../lib/supabaseBrowserClient";
 
 function getOptionKey(optionText: string): string {
   const m = optionText.trim().match(/^([A-D])(?:\s*[\.\)\-:])?\s*/i);
@@ -15,13 +18,13 @@ function clampInt(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.trunc(n)));
 }
 
-export default function HomeClient() {
+export default function Home() {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(false);
 
   // New: test settings
   const [testType, setTestType] = useState<TestType>(TEST_TYPES[0]);
-  const [count, setCount] = useState<number>(30);
+  const [count, setCount] = useState<number>(20);
   const [difficultyMix, setDifficultyMix] = useState<DifficultyMix>({ Easy: 34, Medium: 33, Hard: 33 });
   const difficultyTotal = difficultyMix.Easy + difficultyMix.Medium + difficultyMix.Hard;
   const difficultyValid = difficultyTotal === 100;
@@ -39,6 +42,11 @@ export default function HomeClient() {
 
   const handleGenerate = async () => {
     if (!difficultyValid) return;
+
+    if (!userEmail) {
+      setAuthOpen(true);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -131,203 +139,235 @@ export default function HomeClient() {
     return `Time left: ${mm}:${String(ss).padStart(2, "0")}`;
   }, [secondsLeft]);
 
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  const [authOpen, setAuthOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+
+    supabaseBrowserClient.auth.getSession().then(({ data }) => {
+      if (!alive) return;
+      setUserEmail(data.session?.user?.email ?? null);
+    });
+
+    const { data: sub } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
+      setUserEmail(session?.user?.email ?? null);
+    });
+
+    return () => {
+      alive = false;
+      sub.subscription.unsubscribe();
+    };
+  }, [supabaseBrowserClient]);
+
   return (
-    <main className="max-w-3xl mx-auto py-10 px-4">
-      <h1 className="text-4xl font-bold text-center mb-4">AzurePrep AI</h1>
-      <p className="text-center text-gray-600 mb-8">Generate AI-powered Azure Fundamentals practice tests.</p>
+    <div className="min-h-screen">
 
-      {/* New: Test configuration */}
-      <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 text-[#0a0a0a]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <label className="text-sm text-gray-700">
-            Test type
-            <select
-              className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
-              value={testType}
-              onChange={(e) => setTestType(e.target.value as TestType)}
-              disabled={loading}
-            >
-              {TEST_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </label>
+      <HeaderAuth onOpenAuth={() => setAuthOpen(true)} />
 
-          <label className="text-sm text-gray-700">
-            Number of questions
-            <input
-              readOnly
-              type="number"
-              min={1}
-              max={50}
-              step={1}
-              className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
-              value={count}
-              onChange={(e) => setCount(clampInt(Number(e.target.value), 1, 50))}
-              disabled={loading}
-            />
-          </label>
-        </div>
+      <main className="mx-auto max-w-5xl px-4 py-6">
+        <h1 className="text-4xl font-bold text-center mb-4">AzurePrep AI</h1>
+        <p className="text-center text-gray-600 mb-8">Generate AI-powered Azure Fundamentals practice tests.</p>
 
-        <div className="mt-4">
-          <div className="text-sm text-gray-700 mb-2">Difficulty mix (must sum to 100%)</div>
+        {/* New: Test configuration */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 text-[#0a0a0a]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <label className="text-sm text-gray-700">
+              Test type
+              <select
+                className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm bg-white"
+                value={testType}
+                onChange={(e) => setTestType(e.target.value as TestType)}
+                disabled={loading}
+              >
+                {TEST_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <div className="text-xs text-gray-500 text-center">
-                Easy <span className="text-gray-800">({difficultyMix.Easy}%)</span>
-              </div>
+            <label className="text-sm text-gray-700">
+              Number of questions
               <input
-                type="range"
-                min={0}
-                max={100}
+                readOnly
+                type="number"
+                min={1}
+                max={50}
                 step={1}
-                value={difficultyMix.Easy}
-                onChange={(e) =>
-                  setDifficultyMix((prev) => ({ ...prev, Easy: clampInt(Number(e.target.value), 0, 100) }))
-                }
-                className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
+                className="mt-1 w-full border border-gray-300 rounded-md px-2 py-2 text-sm"
+                value={count}
+                onChange={(e) => setCount(clampInt(Number(e.target.value), 1, 50))}
                 disabled={loading}
               />
-            </div>
-
-            <div>
-              <div className="text-xs text-gray-500 text-center">
-                Medium <span className="text-gray-800">({difficultyMix.Medium}%)</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={difficultyMix.Medium}
-                onChange={(e) =>
-                  setDifficultyMix((prev) => ({ ...prev, Medium: clampInt(Number(e.target.value), 0, 100) }))
-                }
-                className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
-                disabled={loading}
-              />
-            </div>
-
-            <div>
-              <div className="text-xs text-gray-500 text-center">
-                Hard <span className="text-gray-800">({difficultyMix.Hard}%)</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={1}
-                value={difficultyMix.Hard}
-                onChange={(e) =>
-                  setDifficultyMix((prev) => ({ ...prev, Hard: clampInt(Number(e.target.value), 0, 100) }))
-                }
-                className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
-                disabled={loading}
-              />
-            </div>
+            </label>
           </div>
 
-          <div className="mt-2 text-sm">
-            <span className={difficultyValid ? "text-green-700" : "text-red-600"}>
-              Total: {difficultyTotal}%{difficultyValid ? "" : " (must be 100%)"}
-            </span>
-          </div>
+          <div className="mt-4">
+            <div className="text-sm text-gray-700 mb-2">Difficulty mix (must sum to 100%)</div>
 
-          {!difficultyValid && (
-            <div className="mt-2 text-sm text-red-600">
-              Difficulty mix must sum to 100%.
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className="flex justify-center mb-6">
-        <button
-          onClick={handleGenerate}
-          disabled={loading || !difficultyValid}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-300 transition"
-        >
-          {loading ? "Generating..." : "Generate Test"}
-        </button>
-      </div>
-
-      {/* Global timer + submit controls (used for all questions) */}
-      {questions.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <div className="text-sm text-gray-600">
-                Answered: <span className="">{answeredCount}</span> /{" "}
-                <span className="">{questions.length}</span>
-              </div>
-
-              <div className="mt-1 text-sm">
-                <span className={secondsLeft !== null && secondsLeft <= 10 ? "text-red-600 " : "text-gray-700"}>
-                  {timeLabel}
-                </span>
-                {timedOut && <span className="ml-2 text-red-700 ">Time out</span>}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-[#0a0a0a]">
-              <label className="text-sm text-gray-600">
-                Minutes:
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <div className="text-xs text-gray-500 text-center">
+                  Easy <span className="text-gray-800">({difficultyMix.Easy}%)</span>
+                </div>
                 <input
-                  type="number"
-                  min={1}
+                  type="range"
+                  min={0}
+                  max={100}
                   step={1}
-                  className="ml-2 w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
-                  value={timerMinutesInput}
-                  onChange={(e) => setTimerMinutesInput(Number(e.target.value))}
-                  disabled={secondsLeft !== null && !locked}
+                  value={difficultyMix.Easy}
+                  onChange={(e) =>
+                    setDifficultyMix((prev) => ({ ...prev, Easy: clampInt(Number(e.target.value), 0, 100) }))
+                  }
+                  className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
+                  disabled={loading}
                 />
-              </label>
+              </div>
 
-              <button
-                className="text-[#0a0a0a] px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
-                onClick={startTimer}
-                disabled={locked}
-                type="button"
-              >
-                Start timer
-              </button>
+              <div>
+                <div className="text-xs text-gray-500 text-center">
+                  Medium <span className="text-gray-800">({difficultyMix.Medium}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={difficultyMix.Medium}
+                  onChange={(e) =>
+                    setDifficultyMix((prev) => ({ ...prev, Medium: clampInt(Number(e.target.value), 0, 100) }))
+                  }
+                  className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
+                  disabled={loading}
+                />
+              </div>
 
-              <button
-                type="button"
-                onClick={submitAll}
-                disabled={locked}
-                className="text-[#0a0a0a] px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
-              >
-                Submit all
-              </button>
-
-              <button
-                className="text-[#0a0a0a] px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
-                onClick={resetAll}
-                type="button"
-              >
-                Reset
-              </button>
+              <div>
+                <div className="text-xs text-gray-500 text-center">
+                  Hard <span className="text-gray-800">({difficultyMix.Hard}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={difficultyMix.Hard}
+                  onChange={(e) =>
+                    setDifficultyMix((prev) => ({ ...prev, Hard: clampInt(Number(e.target.value), 0, 100) }))
+                  }
+                  className="mt-1 w-full h-2 bg-gray-200 rounded-md appearance-none cursor-pointer"
+                  disabled={loading}
+                />
+              </div>
             </div>
+
+            <div className="mt-2 text-sm">
+              <span className={difficultyValid ? "text-green-700" : "text-red-600"}>
+                Total: {difficultyTotal}%{difficultyValid ? "" : " (must be 100%)"}
+              </span>
+            </div>
+
+            {!difficultyValid && (
+              <div className="mt-2 text-sm text-red-600">
+                Difficulty mix must sum to 100%.
+              </div>
+            )}
           </div>
         </div>
-      )}
 
-      {questions.length > 0 &&
-        questions.map((q, i) => (
-          <QuestionCard
-            key={i}
-            q={q}
-            index={i}
-            selectedKey={selectedKeys[i] ?? null}
-            onSelect={onSelect}
-            submitted={submitted}
-            timedOut={timedOut}
-          />
-        ))}
-    </main>
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={handleGenerate}
+            disabled={loading || !difficultyValid}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 disabled:bg-blue-300 transition"
+          >
+            {loading ? "Generating..." : "Generate Test"}
+          </button>
+        </div>
+
+        {/* Global timer + submit controls (used for all questions) */}
+        {questions.length > 0 && (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <div className="text-sm text-gray-600">
+                  Answered: <span className="">{answeredCount}</span> /{" "}
+                  <span className="">{questions.length}</span>
+                </div>
+
+                <div className="mt-1 text-sm">
+                  <span className={secondsLeft !== null && secondsLeft <= 10 ? "text-red-600 " : "text-gray-700"}>
+                    {timeLabel}
+                  </span>
+                  {timedOut && <span className="ml-2 text-red-700 ">Time out</span>}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-[#0a0a0a]">
+                <label className="text-sm text-gray-600">
+                  Minutes:
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="ml-2 w-24 border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    value={timerMinutesInput}
+                    onChange={(e) => setTimerMinutesInput(Number(e.target.value))}
+                    disabled={secondsLeft !== null && !locked}
+                  />
+                </label>
+
+                <button
+                  className="text-[#0a0a0a] px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50"
+                  onClick={startTimer}
+                  disabled={locked}
+                  type="button"
+                >
+                  Start timer
+                </button>
+
+                <button
+                  type="button"
+                  onClick={submitAll}
+                  disabled={locked}
+                  className="text-[#0a0a0a] px-4 py-2 rounded-md bg-blue-600 text-white disabled:opacity-50"
+                >
+                  Submit all
+                </button>
+
+                <button
+                  className="text-[#0a0a0a] px-3 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50"
+                  onClick={resetAll}
+                  type="button"
+                >
+                  Reset
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {questions.length > 0 &&
+          questions.map((q, i) => (
+            <QuestionCard
+              key={i}
+              q={q}
+              index={i}
+              selectedKey={selectedKeys[i] ?? null}
+              onSelect={onSelect}
+              submitted={submitted}
+              timedOut={timedOut}
+            />
+          ))}
+
+        <AuthDialog
+          open={authOpen}
+          onClose={() => setAuthOpen(false)}
+        />
+      </main>
+    </div>
   );
 }

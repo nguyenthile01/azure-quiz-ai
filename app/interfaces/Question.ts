@@ -4,7 +4,7 @@ export interface Question {
   // Accept both old and new shapes
   options: string[] | { A: string; B: string; C: string; D: string };
 
-  correctAnswer: string;
+  correct_answer: string;
   explanation: string;
   difficulty?: "Easy" | "Medium" | "Hard";
 }
