@@ -12,6 +12,11 @@ type QuestionCardProps = {
   timedOut?: boolean;
 };
 
+type QuestionWithExtras = Question & {
+  options?: unknown;
+  difficulty?: string;
+};
+
 function getOptionKey(optionText: string): string {
   return optionText.trim().toLowerCase();
 }
@@ -21,13 +26,15 @@ function isOptionMap(v: unknown): v is Record<string, string> {
 }
 
 function toOptionArray(options: unknown): string[] {
-  if (Array.isArray(options)) return options;
+  if (Array.isArray(options)) return options.filter((v): v is string => typeof v === "string");
   if (isOptionMap(options)) return Object.values(options);
   return [];
 }
 
 export default function QuestionCard({ q, index, selectedKey, onSelect, submitted, timedOut }: QuestionCardProps) {
-  const options = useMemo(() => toOptionArray((q as any).options), [q]);
+  const qx: QuestionWithExtras = q;
+
+  const options = useMemo(() => toOptionArray(qx.options), [qx.options]);
   const selected = selectedKey ?? null;
 
   return (
@@ -36,9 +43,9 @@ export default function QuestionCard({ q, index, selectedKey, onSelect, submitte
         <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50">
           {index + 1}. {q.question}
         </h3>
-        {(q as any).difficulty ? (
+        {qx.difficulty ? (
           <span className="shrink-0 rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-xs font-medium text-gray-700 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-300">
-            {(q as any).difficulty}
+            {qx.difficulty}
           </span>
         ) : null}
       </div>

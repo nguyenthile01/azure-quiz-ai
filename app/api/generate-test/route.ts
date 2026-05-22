@@ -13,6 +13,10 @@ function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null;
 }
 
+function hasItemsArray(v: unknown): v is { items: unknown[] } {
+  return isRecord(v) && Array.isArray(v.items);
+}
+
 export async function POST(req: Request) {
   try {
     const body = (await req.json()) as unknown;
@@ -43,9 +47,10 @@ export async function POST(req: Request) {
     const parsed = JSON.parse(jsonText) as unknown;
 
     // accept either: Question[] OR { items: Question[] }
-    const items: Question[] =
-      Array.isArray(parsed) ? (parsed as Question[]) : isRecord(parsed) && Array.isArray((parsed as any).items)
-        ? ((parsed as any).items as Question[])
+    const items: Question[] = Array.isArray(parsed)
+      ? (parsed as Question[])
+      : hasItemsArray(parsed)
+        ? (parsed.items as Question[])
         : [];
 
     return NextResponse.json({ items });

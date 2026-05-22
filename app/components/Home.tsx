@@ -145,21 +145,31 @@ export default function Home() {
 
   useEffect(() => {
     let alive = true;
+    const defer = (fn: () => void) => {
+      // avoid setState synchronously within effect/callbacks (prevents cascading renders warning)
+      queueMicrotask(() => {
+        if (alive) fn();
+      });
+    };
 
-    supabaseBrowserClient.auth.getSession().then(({ data }) => {
-      if (!alive) return;
-      setUserEmail(data.session?.user?.email ?? null);
+    // subscribe first to avoid missing fast auth changes
+    const { data: sub } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
+      defer(() => {
+        setUserEmail(session?.user?.email ?? null);
+      });
     });
 
-    const { data: sub } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email ?? null);
+    supabaseBrowserClient.auth.getSession().then(({ data }) => {
+      defer(() => {
+        setUserEmail(data.session?.user?.email ?? null);
+      });
     });
 
     return () => {
       alive = false;
       sub.subscription.unsubscribe();
     };
-  }, [supabaseBrowserClient]);
+  }, []);
 
   return (
     <div className="min-h-screen">

@@ -6,6 +6,14 @@ import { validateSignupPassword } from "../lib/password";
 
 type Mode = "signIn" | "signUp";
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "object" && err !== null && "message" in err && typeof (err as { message?: unknown }).message === "string") {
+    return (err as { message: string }).message;
+  }
+  return "Authentication failed.";
+}
+
 export default function AuthDialog(props: {
   open: boolean;
   onClose: () => void;
@@ -65,8 +73,8 @@ export default function AuthDialog(props: {
           setInfo("Check your email to confirm your account, then sign in.");
         }
       }
-    } catch (err: any) {
-      setError(err?.message ?? "Authentication failed.");
+    } catch (err) {
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
