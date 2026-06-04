@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import supabaseBrowserClient from "../lib/supabaseBrowserClient";
 import { validateSignupPassword } from "../lib/password";
 
 type Mode = "signIn" | "signUp";
@@ -45,32 +44,40 @@ export default function AuthDialog(props: {
     setInfo(null);
 
     try {
-      if (mode === "signUp") {
+      if (mode === "signIn") {
+        const res = await fetch("/api/authenticated/sign-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          throw new Error(err?.error ?? `Failed to sign in: ${res.status}`);
+        }
+
+        onAuthed?.();
+        onClose();
+      } else {
         const validation = validateSignupPassword(password);
         if (!validation.ok) {
           setError(validation.errors[0] ?? "Password does not meet requirements.");
           setLoading(false);
           return;
         }
-      }
+        const res = await fetch("/api/authenticated/sign-up", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
 
-      if (mode === "signIn") {
-        const { error } = await supabaseBrowserClient.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-
-        onAuthed?.();
-        onClose();
-      } else {
-        const { data, error } = await supabaseBrowserClient.auth.signUp({ email, password });
-        if (error) throw error;
-
-        // Depending on Supabase settings, user may need email confirmation.
-        if (data.user && data.user.identities?.length) {
-          setInfo("Account created. You are signed in.");
+        if (!res.ok) {
+          const err = await res.json().catch(() => null);
+          throw new Error(err?.error ?? `Failed to sign up: ${res.status}`);
+        } else {
+          setInfo("Account created. Check your email to confirm your account, then sign in.");
           onAuthed?.();
           onClose();
-        } else {
-          setInfo("Check your email to confirm your account, then sign in.");
         }
       }
     } catch (err) {
