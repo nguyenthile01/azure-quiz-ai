@@ -58,12 +58,12 @@ Difficulty distribution (by percentage of total questions):
 Each item must include:
 - question
 - options (A, B, C, D)
-- correctAnswer
+- correct_answer
 - explanation
 - difficulty ("Easy" | "Medium" | "Hard")
 
 Rules:
-- correctAnswer must be one of "A" | "B" | "C" | "D"
+- correct_answer must be one of "A" | "B" | "C" | "D"
 - Return JSON only. No markdown, no extra text.
 
 Output JSON schema:
@@ -75,7 +75,7 @@ Output JSON schema:
     {
       "question": string,
       "options": { "A": string, "B": string, "C": string, "D": string },
-      "correctAnswer": "A" | "B" | "C" | "D",
+      "correct_answer": "A" | "B" | "C" | "D",
       "explanation": string,
       "difficulty": "Easy" | "Medium" | "Hard"
     }
