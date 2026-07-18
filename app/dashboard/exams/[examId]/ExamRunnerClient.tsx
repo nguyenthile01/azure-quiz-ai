@@ -3,19 +3,25 @@
 import { useMemo, useState } from "react";
 import QuestionCard from "../../../components/QuestionCard";
 import type { Question } from "@/app/interfaces/Question";
+import { useAuth } from "@/app/lib/authContext";
 
 export default function ExamRunnerClient({
   examId,
   items,
+  isStartOver,
+  startOver
 }: {
   examId: string;
   items: Question[];
+  isStartOver: boolean;
+  startOver: (value: boolean) => void;
 }) {
   const [selectedKeys, setSelectedKeys] = useState<Record<number, { answer: string; value: string }>>({});
   const [submitted, setSubmitted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveInfo, setSaveInfo] = useState<string | null>(null);
+  const { session } = useAuth();
 
   const answeredCount = useMemo(
     () => items.reduce((acc, _q, idx) => acc + (selectedKeys[idx]?.answer ? 1 : 0), 0),
@@ -40,24 +46,13 @@ export default function ExamRunnerClient({
     setSelectedKeys((prev) => ({ ...prev, [questionIndex]: { answer: optionKey, value: optionText } }));
   };
 
-  const getSession = async () => {
-    const res = await fetch("/api/authenticated/session", {
-      method: "GET",
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to get session: ${res.status}`);
-    }
-
-    const data = await res.json();
-    return data.session;
-  };
-
   const submitAll = async () => {
     if (submitted) return;
     if (items.length === 0) return;
+    if (session?.user?.id == null) {
+      setSaveError("User not authenticated.");
+      return;
+    }
 
     // compute score BEFORE setSubmitted(true) to avoid stale memo edge cases
     const computedCorrect = items.reduce((acc, q, idx) => {
@@ -70,9 +65,9 @@ export default function ExamRunnerClient({
     setSaving(true);
     setSaveError(null);
     setSaveInfo(null);
+    startOver(false);
 
     try {
-      const session = await getSession();
       const scoreString = `${computedCorrect}/${items.length}`;
 
       const res = await fetch("/api/exams/submit", {
@@ -132,8 +127,9 @@ export default function ExamRunnerClient({
                 setSelectedKeys({});
                 setSaveError(null);
                 setSaveInfo(null);
+                startOver(true);
               }}
-              disabled={!submitted}
+              disabled={isStartOver}
             >
               Start over
             </button>

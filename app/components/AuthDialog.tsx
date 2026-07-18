@@ -1,7 +1,9 @@
 "use client";
-
 import { useMemo, useState } from "react";
 import { validateSignupPassword } from "../lib/password";
+import { useAuth } from "../lib/authContext";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub, FaLinkedin } from "react-icons/fa6";
 
 type Mode = "signIn" | "signUp";
 
@@ -17,9 +19,9 @@ export default function AuthDialog(props: {
   open: boolean;
   onClose: () => void;
   notice?: string;
-  onAuthed?: () => void;
 }) {
-  const { open, onClose, notice, onAuthed } = props;
+  const { open, onClose, notice } = props;
+  const { refreshSession } = useAuth();
   const [mode, setMode] = useState<Mode>("signIn");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,7 +58,7 @@ export default function AuthDialog(props: {
           throw new Error(err?.error ?? `Failed to sign in: ${res.status}`);
         }
 
-        onAuthed?.();
+        await refreshSession();
         onClose();
       } else {
         const validation = validateSignupPassword(password);
@@ -76,13 +78,38 @@ export default function AuthDialog(props: {
           throw new Error(err?.error ?? `Failed to sign up: ${res.status}`);
         } else {
           setInfo("Account created. Check your email to confirm your account, then sign in.");
-          onAuthed?.();
           onClose();
         }
       }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
+      setLoading(false);
+    }
+  }
+
+  const signInWithOAuth = async (provider: "google" | "github" | "linkedin_oidc") => {
+    try {
+      const res = await fetch(`/api/authenticated/sign-in-with-OAuth`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ provider }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err?.error ?? `Failed to start OAuth sign-in (${res.status})`);
+      }
+
+      const body = await res.json();
+      if (!body?.url) {
+        throw new Error("No redirect URL returned from server.");
+      }
+      // ✅ Redirect to Google - user will return to /api/authenticated/sign-in-with-google
+      await (window.location.href = body.url);
+
+    } catch (err) {
+      setError(getErrorMessage(err));
       setLoading(false);
     }
   }
@@ -120,8 +147,8 @@ export default function AuthDialog(props: {
           </div>
         ) : null}
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
+        <form className="space-y-3">
+          {/* <div>
             <label className="mb-1 block text-sm font-medium text-gray-900 dark:text-gray-100">Email</label>
             <input
               className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 shadow-sm shadow-black/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:placeholder:text-gray-400 dark:focus-visible:ring-gray-600"
@@ -165,18 +192,66 @@ export default function AuthDialog(props: {
                 ) : null}
               </div>
             ) : null}
-          </div>
+          </div> */}
 
-          <button
+          {/* <button
             type="submit"
             disabled={loading}
             className="w-full rounded bg-gray-900 px-3 py-2 text-white shadow-sm shadow-black/10 hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:focus-visible:ring-gray-600"
           >
             {loading ? "Please wait..." : mode === "signIn" ? "Sign in" : "Create account"}
+          </button> */}
+          <button
+            type="button"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              setInfo(null);
+              await signInWithOAuth("google");
+            }}
+            className="w-full rounded bg-gray-100 px-3 py-2 text-gray-900 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-600"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FcGoogle size={20} />
+              Sign in with Google
+            </div>
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              setInfo(null);
+              await signInWithOAuth("github");
+            }}
+            className="w-full rounded bg-gray-100 px-3 py-2 text-gray-900 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-600"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaGithub size={20} />
+              Sign in with GitHub
+            </div>
+          </button>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={async () => {
+              setLoading(true);
+              setError(null);
+              setInfo(null);
+              await signInWithOAuth("linkedin_oidc");
+            }}
+            className="w-full rounded bg-gray-100 px-3 py-2 text-gray-900 hover:bg-gray-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700 dark:focus-visible:ring-gray-600"
+          >
+            <div className="flex items-center justify-center gap-2">
+              <FaLinkedin size={20} color="#02a3f9ff" />
+              Sign in with LinkedIn
+            </div>
           </button>
         </form>
 
-        <div className="mt-4 flex items-center justify-between">
+        {/* <div className="mt-4 flex items-center justify-between">
           <p className="text-sm text-gray-600 dark:text-gray-300">
             {mode === "signIn" ? "No account?" : "Already have an account?"}
           </p>
@@ -191,7 +266,7 @@ export default function AuthDialog(props: {
           >
             {mode === "signIn" ? "Sign up" : "Sign in"}
           </button>
-        </div>
+        </div> */}
       </div>
     </div>
   );

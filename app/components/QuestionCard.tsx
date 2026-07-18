@@ -6,7 +6,7 @@ import type { Question } from "../interfaces/Question";
 type QuestionCardProps = {
   question: Question;
   index: number;
-  selectedKey?: {answer: string, value: string} | null;
+  selectedKey?: { answer: string, value: string } | null;
   onSelect?: (index: number, key: string, optionText: string) => void;
   submitted?: boolean;
   timedOut?: boolean;
@@ -45,7 +45,7 @@ export default function QuestionCard({ question, index, selectedKey, onSelect, s
                 "focus-visible:outline-none focus-visible:ring-2",
                 disabled ? "cursor-not-allowed opacity-70" : "",
                 isSelected
-                  ? "border-gray-500 bg-gray-100 text-gray-900 focus-visible:ring-gray-300 dark:border-gray-500 dark:bg-gray-800 dark:text-gray-100 dark:focus-visible:ring-gray-700"
+                  ? "border-green-500 bg-green-100 text-green-900 focus-visible:ring-green-300 dark:border-green-500 dark:bg-green-800 dark:text-green-100 dark:focus-visible:ring-green-700"
                   : "border-gray-200 bg-white text-gray-900 hover:bg-gray-50 focus-visible:ring-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:hover:bg-gray-800 dark:focus-visible:ring-gray-600",
                 isWrong ? "border-red-500 bg-red-50 text-red-900 focus-visible:ring-red-300 dark:border-red-700 dark:bg-red-950/30 dark:text-red-200 dark:focus-visible:ring-red-700/50" : "",
               ].join(" ")}
