@@ -1,79 +1,49 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useAuth } from "../lib/authContext";
 
 export default function HeaderAuth(props: { onOpenAuth: () => void }) {
   const { onOpenAuth } = props;
+  const { session, loading } = useAuth();
 
-  const [email, setEmail] = useState<string | null>(null);
+  if (loading) {
+    return <div className="h-10 w-32 animate-pulse rounded bg-gray-200 dark:bg-gray-700" />;
+  }
 
-  useEffect(() => {
-    let active = true;
-
-    fetch("/api/authenticated/session")
-      .then(async (res) => {
-        if (!res.ok) {
-          if (active) setEmail(null);
-          return;
-        }
-        const data = await res.json();
-        if (active) setEmail(data.session?.user?.email ?? null);
-      })
-      .catch(() => {
-        if (active) setEmail(null);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [onOpenAuth]);
+  if (!session) {
+    return (
+      <button
+        onClick={onOpenAuth}
+        className="rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white"
+      >
+        Sign in
+      </button>
+    );
+  }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur shadow-sm shadow-black/5 dark:border-gray-800 dark:bg-gray-950/80 dark:shadow-black/30">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-semibold tracking-tight text-gray-900 dark:text-gray-50">
-            Azure Quiz AI
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {email ? (
-            <>
-              <span className="hidden text-sm text-gray-700 dark:text-gray-300 sm:inline">
-                {email}
-              </span>
-              <button
-                type="button"
-                onClick={async () => {
-                  const res = await fetch("/api/authenticated/sign-out", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                  });
-
-                  if (!res.ok) {
-                    const err = await res.json().catch(() => null);
-                    throw new Error(err?.error ?? `Failed to sign out: ${res.status}`);
-                  }
-
-                  setEmail(null);
-                }}
-                className="rounded border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-900 shadow-sm shadow-black/5 hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:border-gray-700 dark:bg-gray-950 dark:text-gray-100 dark:shadow-black/20 dark:hover:bg-gray-900 dark:focus-visible:ring-gray-600"
-              >
-                Sign out
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={onOpenAuth}
-              className="rounded bg-gray-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm shadow-black/10 hover:bg-gray-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white dark:focus-visible:ring-gray-600"
-            >
-              Sign in
-            </button>
-          )}
+    <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
+        {session.user.user_metadata?.avatar_url && (
+          <img
+            src={session.user.user_metadata.avatar_url}
+            alt="Avatar"
+            className="h-8 w-8 rounded-full"
+          />
+        )}
+        <div className="">
+          <span className="text-gray-600 dark:text-gray-400">{session.user.email}</span>
+          <button
+            onClick={async () => {
+              await fetch("/api/authenticated/sign-out", { method: "POST" });
+              window.location.reload();
+            }}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            Sign out
+          </button>
         </div>
       </div>
-    </header>
+    </div>
   );
 }

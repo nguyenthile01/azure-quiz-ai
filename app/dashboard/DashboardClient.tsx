@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import HeaderAuth from "../components/HeaderAuth";
 import AuthDialog from "../components/AuthDialog";
 import GenerateComponent from "../components/GenerateComponent";
+import { useAuth } from "../lib/authContext";
 import { ExamSummary } from "../interfaces/Exam";
 
 function formatDate(value: string | null) {
@@ -15,42 +17,64 @@ function formatDate(value: string | null) {
 }
 
 export default function DashboardClient() {
+  const searchParams = useSearchParams();
+  const { session, loading, refreshSession } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [exams, setExams] = useState<ExamSummary[]>([]);
-  const getSession = async () => {
-    const res = await fetch("/api/authenticated/session", {
-      method: "GET",
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
 
-    if (!res.ok) {
-      throw new Error(`Failed to get session: ${res.status}`);
+  // Check if we just came back from OAuth
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      setAuthOpen(true);
+    } else {
+      // Refresh session on mount to catch OAuth redirect.
+      // A slight delay can help ensure the cookie is set before refreshing.
+      const timer = setTimeout(() => {
+        refreshSession();
+      }, 100);
+      return () => {
+        clearTimeout(timer);
+      };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
 
-    const data = await res.json();
-    return data.session;
-  }
+  useEffect(() => {
+    if (!loading && !session) {
+      setAuthOpen(true);
+    }
+  }, [session, loading]);
 
   useEffect(() => {
     async function loadExams() {
+      if (!session) return;
+
       try {
-        const session = await getSession();
-        const res = await fetch("/api/exams/get-exam-summaries", { 
+        const res = await fetch("/api/exams/get-exam-summaries", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
-          body: JSON.stringify({ user: session.user })
+          body: JSON.stringify({ user: session.user }),
         });
+
         const data = await res.json();
-        if (res.ok) setExams(data.items);
-        else console.error("Failed to load exams:", data.error);
+        if (res.ok) {
+          setExams(data.items);
+        } else {
+          console.error("Failed to load exams:", data.error);
+        }
       } catch (err) {
         console.error("Error loading exams:", err);
       }
     }
+
     loadExams();
-  }, []);
+  }, [session]);
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
 
   return (
     <div>
@@ -63,7 +87,6 @@ export default function DashboardClient() {
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">Your Progress</h1>
         </div>
 
-        {/* exam list */}
         {exams.length === 0 ? (
           <div className="rounded border border-gray-200 bg-white p-4 text-sm text-gray-700 dark:border-gray-800 dark:bg-gray-900 dark:text-gray-200">
             No exams found yet.

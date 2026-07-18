@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { TEST_TYPES, type DifficultyMix, type TestType } from "../lib/prompt";
 import type { Question } from "../interfaces/Question";
 import { ExamSummary } from "../interfaces/Exam";
+import { useAuth } from "../lib/authContext";
 
 const MAXEXAMS = 2;
 
@@ -18,6 +19,7 @@ export default function GenerateComponent({ exams, setAuthOpen }: { exams: ExamS
   const now = new Date()
   const currentMonth = now.getMonth()
   const currentYear = now.getFullYear()
+  const { session } = useAuth();
 
   const recentExams = useMemo(() => {
     return exams
@@ -46,19 +48,12 @@ export default function GenerateComponent({ exams, setAuthOpen }: { exams: ExamS
       setError(`You have already generated ${recentExams.length} exam(s) this month. Please register an premium account to generate more exams and access additional features.`);
       return;
     }
-    // Make sure you import { supabase } from '@/lib/supabaseBrowserClient'
-    const sessionRes = await fetch("/api/authenticated/session", {
-      credentials: "same-origin",
-    }).then((res) => {
-      if (!res.ok) {
-        if (res.status === 401) {
-          setAuthOpen(true);
-        }
-      }
-      return res.json();
-    });
 
-    const user = sessionRes.session?.user;
+    const user = session?.user;
+    if (!user) {
+      setAuthOpen(true);
+      return;
+    }
 
     setLoading(true);
     try {
