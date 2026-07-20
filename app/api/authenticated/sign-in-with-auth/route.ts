@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const supabase = supabaseServerClient();
+  const url = process.env.PUBLIC_SITE_URL || request.nextUrl.origin;
   const { provider } = await request.json();
 
   if (!provider) {
@@ -12,13 +13,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const origin = process.env.PUBLIC_SITE_URL || request.nextUrl.origin;
-
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider,
     options: {
       // This now correctly uses the server-side request origin
-      redirectTo: `${origin}/api/authenticated/sign-in-with-OAuth/callback`,
+      redirectTo: `${url}/api/authenticated/sign-in-with-auth/callback`,
     },
   });
 
