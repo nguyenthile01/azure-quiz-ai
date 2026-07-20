@@ -18,10 +18,6 @@ export async function POST(request: NextRequest) {
     options: {
       // This now correctly uses the server-side request origin
       redirectTo: `${origin}/api/authenticated/sign-in-with-OAuth/callback`,
-      queryParams: {
-        access_type: 'offline',
-        prompt: 'consent',
-      },
     },
   });
 
