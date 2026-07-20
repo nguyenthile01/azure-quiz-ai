@@ -4,10 +4,12 @@ import supabaseServerClient from "@/app/lib/supabaseServerClient";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const origin = requestUrl.origin;
+
+  // Use an environment variable for the site URL in production for reliability.
+  const origin = process.env.PUBLIC_SITE_URL || requestUrl.origin;
 
   if (code) {
-    const supabase = await supabaseServerClient();
+    const supabase = supabaseServerClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
@@ -17,7 +19,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // On success, redirect to the dashboard.
-  // The client-side AuthProvider will then refresh the session.
+  // On success, redirect to the dashboard using the correct origin.
   return NextResponse.redirect(`${origin}/dashboard`);
 }
