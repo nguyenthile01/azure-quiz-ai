@@ -3,10 +3,9 @@ import supabaseServerClient from "@/app/lib/supabaseServerClient";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  const code = requestUrl.searchParams.get("code");
-
   // Use an environment variable for the site URL in production for reliability.
-  const origin = process.env.PUBLIC_SITE_URL || requestUrl.origin;
+  const url = process.env.PUBLIC_SITE_URL || requestUrl.origin;
+  const code = requestUrl.searchParams.get("code");
 
   if (code) {
     const supabase = supabaseServerClient();
@@ -15,10 +14,10 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("OAuth callback error:", error);
       // Redirect to an error page on failure
-      return NextResponse.redirect(`${origin}/auth/error`);
+      return NextResponse.redirect(`${url}/auth/error`);
     }
   }
 
   // On success, redirect to the dashboard using the correct origin.
-  return NextResponse.redirect(`${origin}/dashboard`);
+  return NextResponse.redirect(`${url}/dashboard`);
 }

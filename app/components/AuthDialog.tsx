@@ -90,7 +90,7 @@ export default function AuthDialog(props: {
 
   const signInWithOAuth = async (provider: "google" | "github" | "linkedin_oidc") => {
     try {
-      const res = await fetch(`/api/authenticated/sign-in-with-OAuth`, {
+      const res = await fetch(`/api/authenticated/sign-in-with-auth`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider }),
