@@ -2,8 +2,7 @@ import supabaseServerClient from "@/app/lib/supabaseServerClient";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
-  const supabase = await supabaseServerClient();
-  const origin = request.nextUrl.origin;
+  const supabase = supabaseServerClient();
   const { provider } = await request.json();
 
   if (!provider) {
@@ -12,6 +11,8 @@ export async function POST(request: NextRequest) {
       { status: 400 }
     );
   }
+
+  const origin = process.env.PUBLIC_SITE_URL || request.nextUrl.origin;
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider,
