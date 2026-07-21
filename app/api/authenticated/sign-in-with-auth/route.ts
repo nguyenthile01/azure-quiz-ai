@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const supabase = supabaseServerClient();
-  const url = process.env.PUBLIC_SITE_URL || request.nextUrl.origin;
+  const url = request.nextUrl.origin;
   const { provider } = await request.json();
 
   if (!provider) {

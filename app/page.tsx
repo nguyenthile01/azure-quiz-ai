@@ -1,7 +1,5 @@
 import { Suspense } from "react";
 import DashboardClient from "./dashboard/DashboardClient";
-import DashboardLayout from "./dashboard/layout";
-import DashboardPage from "./dashboard/page";
 
 // You can reuse or create a specific loading component
 function PageLoading() {

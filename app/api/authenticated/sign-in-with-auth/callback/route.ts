@@ -3,8 +3,12 @@ import supabaseServerClient from "@/app/lib/supabaseServerClient";
 
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
-  // Use an environment variable for the site URL in production for reliability.
-  const url = process.env.PUBLIC_SITE_URL || requestUrl.origin;
+  // Use Vercel's system environment variable for the deployment URL.
+  // Fallback to localhost for local development.
+  const url = process.env.PUBLIC_SITE_URL
+    ? `${process.env.PUBLIC_SITE_URL}`
+    : "http://localhost:3000";
+  console.log("OAuth callback request URL:", requestUrl.toString());
   const code = requestUrl.searchParams.get("code");
 
   if (code) {
