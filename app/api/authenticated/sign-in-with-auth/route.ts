@@ -3,7 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const supabase = supabaseServerClient();
-  const url = request.nextUrl.origin;
+  // Use Vercel's system environment variable for the deployment URL.
+  // Fallback to localhost for local development.
+  const origin = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
   const { provider } = await request.json();
 
   if (!provider) {
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
     provider: provider,
     options: {
       // This now correctly uses the server-side request origin
-      redirectTo: `${url}/api/authenticated/sign-in-with-auth/callback`,
+      redirectTo: `${origin}/api/authenticated/sign-in-with-auth/callback`,
     },
   });
 
