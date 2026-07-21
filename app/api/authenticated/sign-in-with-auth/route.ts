@@ -3,11 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const supabase = supabaseServerClient();
-  // Use Vercel's system environment variable for the deployment URL.
-  // Fallback to localhost for local development.
-  const origin = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  // Use the origin from the request URL for robustness.
+  const origin = request.nextUrl.origin;
   const { provider } = await request.json();
 
   if (!provider) {
