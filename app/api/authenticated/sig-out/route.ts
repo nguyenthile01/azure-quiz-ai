@@ -12,6 +12,6 @@ export async function POST() {
 
     return new NextResponse("Signed out", { status: 200 });
   } catch (error) {
-    return new NextResponse(JSON.stringify({ error: "Sign-out failed" }), { status: 500 });
+    return new NextResponse(JSON.stringify({ error }), { status: 500 });
   }
 }
