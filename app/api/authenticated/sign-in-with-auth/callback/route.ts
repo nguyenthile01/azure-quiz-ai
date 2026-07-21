@@ -5,8 +5,8 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   // Use Vercel's system environment variable for the deployment URL.
   // Fallback to localhost for local development.
-  const url = process.env.PUBLIC_SITE_URL
-    ? `${process.env.PUBLIC_SITE_URL}`
+  const url = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
     : "http://localhost:3000";
   console.log("OAuth callback request URL:", requestUrl.toString());
   const code = requestUrl.searchParams.get("code");
