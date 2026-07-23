@@ -106,7 +106,9 @@ export default function AuthDialog(props: {
         throw new Error("No redirect URL returned from server.");
       }
       // ✅ Redirect to Google - user will return to /api/authenticated/sign-in-with-google
+      console.log("Redirecting to OAuth provider1:", body.url);
       await (window.location.href = body.url);
+      console.log("Redirecting to OAuth provider2:", body.url);
 
     } catch (err) {
       setError(getErrorMessage(err));
