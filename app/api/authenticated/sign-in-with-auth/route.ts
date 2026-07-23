@@ -3,11 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
   const supabase = supabaseServerClient();
-  // Use Vercel's system environment variable for the deployment URL.
-  // Fallback to localhost for local development.
-  const origin = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  
+  // Construct a canonical origin URL.
+  // Use Vercel's production URL in production, otherwise fallback to localhost.
+  const origin = process.env.NEXT_PUBLIC_VERCEL_URL 
+    ? `${process.env.NEXT_PUBLIC_VERCEL_URL}` 
+    : 'http://localhost:3000';
+
+  console.log(" origin for redirect:", origin);
   const { provider } = await request.json();
 
   if (!provider) {
@@ -20,7 +23,7 @@ export async function POST(request: NextRequest) {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider,
     options: {
-      // This now correctly uses the server-side request origin
+      // Use the canonical origin to build the redirect URL
       redirectTo: `${origin}/api/authenticated/sign-in-with-auth/callback`,
     },
   });
