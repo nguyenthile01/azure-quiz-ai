@@ -14,7 +14,7 @@ function clampInt(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.trunc(n)));
 }
 
-export default function GenerateComponent({ exams, setAuthOpen }: { exams: ExamSummary[]; setAuthOpen: (open: boolean) => void }) {
+export default function GenerateComponent({ exams, testTypes, setAuthOpen }: { exams: ExamSummary[]; testTypes: string[]; setAuthOpen: (open: boolean) => void }) {
   const router = useRouter();
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -116,7 +116,7 @@ export default function GenerateComponent({ exams, setAuthOpen }: { exams: ExamS
                 onChange={(e) => setTestType(e.target.value as TestType)}
                 disabled={loading}
               >
-                {TEST_TYPES.map((t) => (
+                {testTypes.map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>

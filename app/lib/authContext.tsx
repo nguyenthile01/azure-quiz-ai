@@ -50,7 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    refreshSession();
+    async function intial() {
+      await refreshSession();
+    }
+    intial();
   }, []);
 
   return (
