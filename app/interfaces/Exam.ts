@@ -6,7 +6,7 @@ export type ExamSummary = {
   createdAt: string;
   completedAt: string | null;
   totalQuestions: number;
-  answeredQuestions?: number;
+  answeredQuestions: number;
 };
 
 export type ExamQuestionRow = {
