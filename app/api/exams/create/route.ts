@@ -19,6 +19,10 @@ export async function POST(req: NextRequest) {
       .insert({
         user_id: body.user_id,
         total_score: "0",
+        question: itemsRaw.map((q) => {
+          const { question, options, correct_answer, explanation, difficulty } = q;
+          return { question, options, correct_answer, explanation, difficulty };
+        }),
       })
       .select("id")
       .single();

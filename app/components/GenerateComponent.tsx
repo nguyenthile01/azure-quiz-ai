@@ -81,14 +81,6 @@ export default function GenerateComponent({ exams, testTypes, setAuthOpen }: { e
         }
         return res.json();
       });
-
-      // create questions
-      await fetch("/api/questions/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin", // 👈 Automatically grabs cookie string securely
-        body: JSON.stringify({ items, user, examResId: examRes.exam.id }),
-      });
       router.push(`/dashboard/exams/${examRes.exam.id}`);
     } catch (e) {
       setError((e as Error)?.message ?? "Failed to generate exam.");
