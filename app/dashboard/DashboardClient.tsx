@@ -8,6 +8,7 @@ import AuthDialog from "../components/AuthDialog";
 import GenerateComponent from "../components/GenerateComponent";
 import { useAuth } from "../lib/authContext";
 import { ExamSummary } from "../interfaces/Exam";
+import { Category } from "../interfaces/Category";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -21,29 +22,36 @@ export default function DashboardClient() {
   const { session, loading, refreshSession } = useAuth();
   const [authOpen, setAuthOpen] = useState(false);
   const [exams, setExams] = useState<ExamSummary[]>([]);
+  const [testTypes, setTestTypes] = useState<string[]>([]);
 
   // Check if we just came back from OAuth
   useEffect(() => {
-    const error = searchParams.get("error");
-    if (error) {
-      setAuthOpen(true);
-    } else {
-      // Refresh session on mount to catch OAuth redirect.
-      // A slight delay can help ensure the cookie is set before refreshing.
-      const timer = setTimeout(() => {
-        refreshSession();
-      }, 100);
-      return () => {
-        clearTimeout(timer);
-      };
+    function checkOAuth() {
+      const error = searchParams.get("error");
+      if (error) {
+        setAuthOpen(true);
+      } else {
+        // Refresh session on mount to catch OAuth redirect.
+        // A slight delay can help ensure the cookie is set before refreshing.
+        const timer = setTimeout(() => {
+          refreshSession();
+        }, 100);
+        return () => {
+          clearTimeout(timer);
+        };
+      }
     }
+    checkOAuth();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   useEffect(() => {
-    if (!loading && !session) {
-      setAuthOpen(true);
+    function inital() {
+      if (!loading && !session) {
+        setAuthOpen(true);
+      }
     }
+    inital();
   }, [session, loading]);
 
   useEffect(() => {
@@ -72,6 +80,28 @@ export default function DashboardClient() {
     loadExams();
   }, [session]);
 
+  useEffect(() => {
+    async function getTestTypes() {
+      if (!session) return;
+      try {
+        const response = await fetch(`/api/categories`, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" }
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to fetch categories: ${response.statusText}`);
+        }
+        const categories: Category[] = await response.json();
+        setTestTypes(categories.map((item) => item.exam_name));
+      } catch (error) {
+        console.error("Failed to fetch test types:", error);
+        // Fallback to an empty list or handle the error as needed
+        setTestTypes([]);
+      }
+    }
+    getTestTypes();
+  }, [session]);
+
   if (loading) {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
@@ -82,7 +112,7 @@ export default function DashboardClient() {
         <HeaderAuth onOpenAuth={() => setAuthOpen(true)} />
         <h1 className="text-4xl font-bold text-center mb-4 px-4 py-6">AzurePrep AI</h1>
         <p className="text-center text-gray-600 mb-8">Generate AI-powered Azure Fundamentals practice tests.</p>
-        <GenerateComponent setAuthOpen={setAuthOpen} exams={exams} />
+        <GenerateComponent setAuthOpen={setAuthOpen} exams={exams} testTypes={testTypes} />
         <div className="mb-6">
           <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-50">Your Progress</h1>
         </div>

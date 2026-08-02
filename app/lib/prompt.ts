@@ -37,7 +37,7 @@ function assertValidDifficultyMix(mix: DifficultyMix) {
 }
 
 export function buildAzureTestPrompt(params: {
-  testType: TestType;
+  testType: string;
   difficultyMix: Partial<DifficultyMix>;
   count?: number; // default 10
 }) {

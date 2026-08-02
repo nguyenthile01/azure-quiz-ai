@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     // Ensure exam belongs to user
     const { data: exam, error: examErr } = await supabase
       .from("exams")
-      .select("id, user_id")
+      .select("*")
       .eq("id", examId)
       .single();
 
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
       .from("exams")
       .update({
         total_score: totalScore,
+        question: exam.question,
         completed_at: new Date().toISOString(),
       })
       .eq("id", examId);

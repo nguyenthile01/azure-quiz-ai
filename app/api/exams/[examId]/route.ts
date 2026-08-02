@@ -15,26 +15,17 @@ export async function GET(_req: Request, ctx: { params: Promise<{ examId: string
 
     if (examErr) return NextResponse.json({ error: examErr.message}, { status: 500 });
 
-    const { data: rows, error: rowsErr } = await supabase
-      .from("questions")
-      .select("*")
-      .eq("exam_id", examId);
-
-    if (rowsErr) return NextResponse.json({ error: rowsErr.message }, { status: 501 });
-
-    const total = rows.length;
-    const answered = total;
+    const total = exam.question.length;
 
     const summary = {
       id: exam.id,
       totalScore: exam.total_score,
       createdAt: exam.created_at,
       completedAt: exam.completed_at ?? null,
-      totalQuestions: total,
-      answeredQuestions: answered,
+      totalQuestions: total
     };
 
-    return NextResponse.json({ summary, items: rows }, { status: 200 });
+    return NextResponse.json({ summary, items: exam.question }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error }, { status: 500 });
   }
